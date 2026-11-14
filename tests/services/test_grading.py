@@ -120,3 +120,39 @@ def test_all_calls_returned_for_cost_logging():
         {"verdict": "partial", "missed": [0], "hint": "h"},
     ])
     assert len(_grade(p).calls) == 2
+
+
+# --- final-review fixes ---
+
+
+def _short_fact_grade(hint):
+    facts = [Fact("Port 443"), Fact("TLS encrypts traffic between client and server.")]
+    p = FakeProvider([{"verdict": "partial", "missed": [0], "hint": hint}] * 2)
+    return Grader(p).grade("Which port does HTTPS use?", facts, "it is secure", [], 3)
+
+
+def test_hint_leaking_a_short_fact_is_invalid():
+    with pytest.raises(GradingError):
+        _short_fact_grade("Remember that HTTPS by default listens on port 443 for traffic")
+
+
+def test_hint_not_containing_short_fact_is_fine():
+    assert _short_fact_grade("Think about the well-known number for secure web traffic.").missed == [0]
+
+
+def test_partial_with_every_fact_missed_becomes_incorrect():
+    p = FakeProvider([{"verdict": "partial", "missed": [0, 1], "hint": "Think about waiting."}])
+    r = _grade(p)
+    assert r.verdict == Verdict.incorrect and len(r.calls) == 1
+
+
+def test_single_fact_partial_becomes_incorrect():
+    p = FakeProvider([{"verdict": "partial", "missed": [0], "hint": "Think about it."}])
+    r = Grader(p).grade(Q, [Fact("Only fact here for this one.")], "x", [], 3)
+    assert r.verdict == Verdict.incorrect
+
+
+def test_chatty_hint_on_correct_answer_is_dropped_not_rejected():
+    p = FakeProvider([{"verdict": "correct", "missed": [], "hint": "Great job!"}])
+    r = _grade(p)
+    assert (r.verdict, r.hint, len(r.calls)) == (Verdict.correct, None, 1)

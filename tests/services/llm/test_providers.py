@@ -136,7 +136,7 @@ def test_openai_provider_passes_base_url_to_client(monkeypatch):
 
     monkeypatch.setattr(openai, "OpenAI", FakeClient)
     p = OpenAIProvider("m", "k", base_url="http://localhost:1234/v1", name="local")
-    assert seen == {"api_key": "k", "base_url": "http://localhost:1234/v1"}
+    assert seen["api_key"] == "k" and seen["base_url"] == "http://localhost:1234/v1"
     assert p.name == "local"
 
 
@@ -157,3 +157,19 @@ def test_factory_local_requires_url_and_model(monkeypatch):
     monkeypatch.setattr(config, "LOCAL_MODEL", None)
     with pytest.raises(LLMError, match="LOCAL_LLM_MODEL"):
         make_provider("local")
+
+
+def test_clients_get_a_timeout_and_no_sdk_retries(monkeypatch):
+    seen = {}
+
+    class Capture:
+        def __init__(self, **kw):
+            seen.setdefault("calls", []).append(kw)
+
+    monkeypatch.setattr(openai, "OpenAI", Capture)
+    monkeypatch.setattr(anthropic, "Anthropic", Capture)
+    OpenAIProvider("m", "k")
+    AnthropicProvider("m", "k")
+    for kw in seen["calls"]:
+        assert kw["timeout"] == config.LLM_TIMEOUT_SECONDS <= 120
+        assert kw["max_retries"] == 0

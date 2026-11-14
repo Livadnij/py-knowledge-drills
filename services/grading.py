@@ -74,11 +74,22 @@ def _ngrams(text: str, n: int) -> set[tuple[str, ...]]:
     return {tuple(w[i : i + n]) for i in range(len(w) - n + 1)}
 
 
+def _contains(words: list[str], sub: list[str]) -> bool:
+    n = len(sub)
+    return n > 0 and any(words[i : i + n] == sub for i in range(len(words) - n + 1))
+
+
 def _leaks(hint: str, facts: list[Fact], question_text: str) -> bool:
+    hint_words, question_words = _words(hint), _words(question_text)
     hint_grams = _ngrams(hint, LEAK_NGRAM)
     allowed = _ngrams(question_text, LEAK_NGRAM)
     for fact in facts:
-        if (hint_grams & _ngrams(fact.text, LEAK_NGRAM)) - allowed:
+        fact_words = _words(fact.text)
+        if len(fact_words) < LEAK_NGRAM:
+            # Short facts can't share a 4-word run: the whole fact appearing in the hint is the leak.
+            if _contains(hint_words, fact_words) and not _contains(question_words, fact_words):
+                return True
+        elif (hint_grams & _ngrams(fact.text, LEAK_NGRAM)) - allowed:
             return True
     return False
 
@@ -99,10 +110,14 @@ def _validate(data: object, facts: list[Fact], hints_remaining: int, question_te
         return None, "correct verdict with missed facts"
     if verdict != Verdict.correct and not missed:
         return None, "non-correct verdict without missed facts"
+    if verdict == Verdict.partial and len(missed) == len(facts):
+        verdict = Verdict.incorrect  # nothing was covered, which is what "incorrect" means
     hint = data.get("hint")
     if hint is not None and not isinstance(hint, str):
         return None, "hint must be a string or null"
     hint = hint.strip() if hint else None
+    if verdict == Verdict.correct:
+        hint = None  # models like to say "Great job!"; it is not a reason to fail a correct grade
     should_hint = verdict != Verdict.correct and hints_remaining > 0
     if should_hint and not hint:
         return None, "hint required"

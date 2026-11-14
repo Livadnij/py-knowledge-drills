@@ -11,13 +11,14 @@ DB_PATH = BASE_DIR / "drills.db"
 DB_URL = f"sqlite:///{DB_PATH}"
 
 PROVIDER = "local"  # "anthropic" | "openai" | "local"
-MODELS = {"anthropic": "claude-sonnet-5-5", "openai": "gpt-5", "local": "google/gemma-4-12b-qat"}
+MODELS = {"anthropic": "claude-sonnet-5-5", "openai": "gpt-5"}
 # (input, output) USD per million tokens
 PRICES_PER_MTOK: dict[str, tuple[float, float]] = {
     "claude-sonnet-5-5": (3.0, 15.0),
     "gpt-5": (1.25, 10.0),
 }
 
+LLM_TIMEOUT_SECONDS = 60  # per request; a hung server must not freeze a question for minutes
 MAX_HINTS = 3
 MIN_ANSWER_CHARS = 15
 DESIRED_RETENTION = 0.9

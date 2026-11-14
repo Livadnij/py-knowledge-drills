@@ -84,3 +84,50 @@ def test_duplicates_within_one_file_are_skipped(session, tmp_path):
     f.write_text(json.dumps({"areas": [{"key": "a", "name": "A"}], "questions": [q, q]}))
     r = import_file(session, f)
     assert (r.questions_added, len(r.skipped)) == (1, 1)
+
+
+# --- final-review fixes ---
+
+
+def test_non_list_sections_are_rejected_with_a_report(session, tmp_path):
+    for body in ({"areas": None}, {"questions": 5}, {"areas": "x", "questions": {}}):
+        f = tmp_path / "s.json"
+        f.write_text(json.dumps(body))
+        r = import_file(session, f)
+        assert not r.ok and r.errors, body
+
+
+def test_one_crashing_file_does_not_hide_other_reports(session, monkeypatch, tmp_path):
+    second = tmp_path / "second.json"
+    second.write_text(json.dumps({"areas": [{"key": "net", "name": "Net"}],
+                                  "questions": [{"area": "net", "text": "Q?", "answer": ["a"]}]}))
+    real = questions.create
+    calls = {"n": 0}
+
+    def flaky(*a, **kw):
+        calls["n"] += 1
+        if calls["n"] == 3:  # first question of the second file
+            raise RuntimeError("disk on fire")
+        return real(*a, **kw)
+
+    monkeypatch.setattr(questions, "create", flaky)
+    reports = import_files(session, [FIX / "valid.json", second])
+    assert len(reports) == 2 and reports[0].ok
+    assert reports[1].ok is False and any("disk on fire" in e for e in reports[1].errors)
+
+
+def test_crash_midway_through_a_file_writes_nothing(session, monkeypatch):
+    real = questions.create
+    calls = {"n": 0}
+
+    def flaky(*a, **kw):
+        calls["n"] += 1
+        if calls["n"] == 2:
+            raise RuntimeError("boom")
+        return real(*a, **kw)
+
+    monkeypatch.setattr(questions, "create", flaky)
+    (report,) = import_files(session, [FIX / "valid.json"])
+    session.rollback()
+    assert not report.ok
+    assert (_count(session, Area), _count(session, Question)) == (0, 0)

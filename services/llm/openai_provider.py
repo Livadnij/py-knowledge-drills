@@ -3,6 +3,8 @@ import time
 
 import openai
 
+import config
+
 from services.llm.base import LLMError, LLMResult
 
 
@@ -14,7 +16,7 @@ class OpenAIProvider:
         self.name = name
         self.model = model
         if client is None:
-            kwargs = {"api_key": api_key}
+            kwargs = {"api_key": api_key, "timeout": config.LLM_TIMEOUT_SECONDS, "max_retries": 0}
             if base_url:
                 kwargs["base_url"] = base_url
             client = openai.OpenAI(**kwargs)

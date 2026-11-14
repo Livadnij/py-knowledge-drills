@@ -33,6 +33,12 @@ def import_file(session: Session, path: Path) -> ImportReport:
         return _rejected(path, ["top level must be an object with 'areas' and/or 'questions'"])
 
     errors: list[str] = []
+    for section in ("areas", "questions"):
+        if section in data and not isinstance(data[section], list):
+            errors.append(f"{section}: must be a list")
+    if errors:
+        return _rejected(path, errors)
+
     new_areas: list[dict] = []
     for i, raw in enumerate(data.get("areas", [])):
         area, errs = validate_area(raw, f"areas[{i}]")
@@ -78,4 +84,10 @@ def import_file(session: Session, path: Path) -> ImportReport:
 
 
 def import_files(session: Session, paths: list[Path]) -> list[ImportReport]:
-    return [import_file(session, p) for p in paths]
+    reports = []
+    for p in paths:
+        try:
+            reports.append(import_file(session, p))
+        except Exception as exc:  # noqa: BLE001 - one bad file must not hide the other reports
+            reports.append(_rejected(Path(p), [f"{Path(p).name}: import failed and was undone ({exc})"]))
+    return reports

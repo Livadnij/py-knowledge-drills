@@ -2,6 +2,8 @@ import time
 
 import anthropic
 
+import config
+
 from services.llm.base import LLMError, LLMResult
 
 TOOL_NAME = "respond"
@@ -13,7 +15,9 @@ class AnthropicProvider:
     def __init__(self, model: str, api_key: str, client=None, max_tokens: int = 1024):
         self.model = model
         self._max_tokens = max_tokens
-        self._client = client or anthropic.Anthropic(api_key=api_key)
+        self._client = client or anthropic.Anthropic(
+            api_key=api_key, timeout=config.LLM_TIMEOUT_SECONDS, max_retries=0
+        )
 
     def complete_json(self, system: str, user: str, schema: dict) -> LLMResult:
         started = time.monotonic()
