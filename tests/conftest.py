@@ -1,3 +1,7 @@
+import os
+
+os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+
 import pytest
 from sqlalchemy.orm import Session
 
@@ -12,3 +16,11 @@ def session():
     factory = make_session_factory(engine)
     with factory() as s:
         yield s
+
+
+@pytest.fixture
+def factory(tmp_path):
+    """A file-backed session factory, shared across threads like the real app."""
+    engine = make_engine(f"sqlite:///{tmp_path / 'ui.db'}")
+    Base.metadata.create_all(engine)
+    return make_session_factory(engine)

@@ -10,8 +10,8 @@ BASE_DIR = Path(__file__).parent
 DB_PATH = BASE_DIR / "drills.db"
 DB_URL = f"sqlite:///{DB_PATH}"
 
-PROVIDER = "anthropic"  # "anthropic" | "openai" | "local"
-MODELS = {"anthropic": "claude-sonnet-5-5", "openai": "gpt-5"}
+PROVIDER = "local"  # "anthropic" | "openai" | "local"
+MODELS = {"anthropic": "claude-sonnet-5-5", "openai": "gpt-5", "local": "google/gemma-4-12b-qat"}
 # (input, output) USD per million tokens
 PRICES_PER_MTOK: dict[str, tuple[float, float]] = {
     "claude-sonnet-5-5": (3.0, 15.0),
