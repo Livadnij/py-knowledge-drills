@@ -14,6 +14,7 @@ from pathlib import Path
 import config
 from domain import Fact
 from services.grading import Grader, GradeResult, GradingError
+from services.llm.base import LLMError
 from services.llm.factory import make_provider
 
 EVAL_MIN_PASS = 0.9
@@ -99,7 +100,12 @@ def main(argv: list[str] | None = None, provider_factory: Callable = make_provid
     args = parser.parse_args(argv)
 
     cases = load_cases(args.cases)
-    report = score(run(cases, Grader(provider_factory(args.provider))))
+    try:
+        grader = Grader(provider_factory(args.provider))
+    except LLMError as exc:
+        print(exc)
+        return 2
+    report = score(run(cases, grader))
 
     print(f"provider={args.provider}  pass {report.passed}/{report.total} ({report.rate:.0%})")
     for line in report.mismatches:

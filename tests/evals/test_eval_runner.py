@@ -67,3 +67,13 @@ def test_runner_exit_code_nonzero_on_false_correct():
     cases = load_cases(CASES)
     code = main(["--provider", "fake"], provider_factory=lambda name: _scripted_provider(cases, as_expected=False))
     assert code != 0
+
+
+def test_runner_reports_missing_key_without_traceback(capsys):
+    from services.llm.base import LLMError
+
+    def no_key(name):
+        raise LLMError("OPENAI_API_KEY is not set (put it in .env)")
+
+    assert main(["--provider", "openai"], provider_factory=no_key) == 2
+    assert "OPENAI_API_KEY" in capsys.readouterr().out
