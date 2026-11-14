@@ -125,3 +125,35 @@ def test_anthropic_live():
 def test_openai_live():
     r = make_provider("openai").complete_json("Reply with JSON.", "Set ok to true.", SCHEMA)
     assert r.data == {"ok": True}
+
+
+def test_openai_provider_passes_base_url_to_client(monkeypatch):
+    seen = {}
+
+    class FakeClient:
+        def __init__(self, **kw):
+            seen.update(kw)
+
+    monkeypatch.setattr(openai, "OpenAI", FakeClient)
+    p = OpenAIProvider("m", "k", base_url="http://localhost:1234/v1", name="local")
+    assert seen == {"api_key": "k", "base_url": "http://localhost:1234/v1"}
+    assert p.name == "local"
+
+
+def test_factory_builds_local_provider(monkeypatch):
+    monkeypatch.setattr(config, "LOCAL_BASE_URL", "http://localhost:1234/v1")
+    monkeypatch.setattr(config, "LOCAL_MODEL", "qwen3-8b")
+    monkeypatch.setattr(config, "LOCAL_API_KEY", "local-key")
+    p = make_provider("local")
+    assert (p.name, p.model) == ("local", "qwen3-8b")
+
+
+def test_factory_local_requires_url_and_model(monkeypatch):
+    monkeypatch.setattr(config, "LOCAL_BASE_URL", None)
+    monkeypatch.setattr(config, "LOCAL_MODEL", "m")
+    with pytest.raises(LLMError, match="LOCAL_LLM_BASE_URL"):
+        make_provider("local")
+    monkeypatch.setattr(config, "LOCAL_BASE_URL", "http://x/v1")
+    monkeypatch.setattr(config, "LOCAL_MODEL", None)
+    with pytest.raises(LLMError, match="LOCAL_LLM_MODEL"):
+        make_provider("local")

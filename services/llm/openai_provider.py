@@ -7,11 +7,18 @@ from services.llm.base import LLMError, LLMResult
 
 
 class OpenAIProvider:
-    name = "openai"
-
-    def __init__(self, model: str, api_key: str, client=None):
+    def __init__(
+        self, model: str, api_key: str, client=None, base_url: str | None = None, name: str = "openai"
+    ):
+        """`base_url` points the client at any OpenAI-compatible server (a local LLM)."""
+        self.name = name
         self.model = model
-        self._client = client or openai.OpenAI(api_key=api_key)
+        if client is None:
+            kwargs = {"api_key": api_key}
+            if base_url:
+                kwargs["base_url"] = base_url
+            client = openai.OpenAI(**kwargs)
+        self._client = client
 
     def complete_json(self, system: str, user: str, schema: dict) -> LLMResult:
         started = time.monotonic()
