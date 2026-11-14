@@ -117,6 +117,14 @@ class Grader:
     def __init__(self, provider: LLMProvider):
         self._provider = provider
 
+    @property
+    def provider_name(self) -> str:
+        return self._provider.name
+
+    @property
+    def model(self) -> str:
+        return self._provider.model
+
     def grade(
         self, question_text: str, facts: list[Fact], answer: str, hints_given: list[str], hints_remaining: int
     ) -> GradeResult:
