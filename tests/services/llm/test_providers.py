@@ -60,7 +60,7 @@ def test_anthropic_returns_parsed_data_and_usage():
     assert (r.data, r.input_tokens, r.output_tokens) == ({"ok": True}, 11, 7)
     assert r.latency_ms >= 0
     call = stub.calls[0]
-    assert call["system"] == "sys" and call["temperature"] == 0
+    assert call["system"] == "sys" and "temperature" not in call
     assert call["tool_choice"]["type"] == "tool"
     assert call["tools"][0]["input_schema"] == SCHEMA
 

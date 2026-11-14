@@ -21,7 +21,6 @@ class AnthropicProvider:
             resp = self._client.messages.create(
                 model=self.model,
                 max_tokens=self._max_tokens,
-                temperature=0,
                 system=system,
                 messages=[{"role": "user", "content": user}],
                 tools=[{"name": TOOL_NAME, "description": "Return the structured result.", "input_schema": schema}],
