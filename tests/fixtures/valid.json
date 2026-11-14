@@ -1,0 +1,8 @@
+{
+  "areas": [{"key": "databases", "name": "Databases", "description": ""}],
+  "questions": [
+    {"area": "databases", "text": "Optimistic vs pessimistic locking?", "level": 3, "external_id": "db-1",
+     "answer": ["Optimistic locking uses a version column.", {"fact": "Pessimistic locking uses SELECT FOR UPDATE.", "major": true}]},
+    {"area": "databases", "text": "What is an index?", "answer": ["An index speeds up lookups."]}
+  ]
+}

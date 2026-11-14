@@ -1,0 +1,8 @@
+{
+  "areas": [{"key": "Bad Key", "name": "X"}],
+  "questions": [
+    {"area": "x", "text": "Q1?", "level": 9, "answer": ["a"]},
+    {"area": "x", "text": "Q2?", "answer": []},
+    {"area": "x", "text": "Q3?", "answer": ["ok", "  "]}
+  ]
+}
