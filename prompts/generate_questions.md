@@ -10,7 +10,7 @@ You turn source material into study questions for a spaced-repetition app. Outpu
 Rules:
 - Each question tests understanding in free text, not recall of a single word. Write it so one short paragraph answers it.
 - `answer` is a checklist of facts. Each fact is one complete sentence that could be checked independently against a learner's answer.
-- Use 3 to 6 facts per question. Do not pad.
+- Include only the facts the question explicitly asks for, usually 1 to 5. A question that asks for three states needs one fact listing them, not extra background about what happens afterwards. Never add related trivia, caveats or follow-up facts the question does not ask about: a learner who answers exactly what was asked must be able to get full marks.
 - Mark a fact as major (`{"fact": "...", "major": true}`) only if the question cannot be considered answered without it. All other facts are plain strings.
 - `level` is 1 (basic recall) to 5 (deep, tricky, or cross-topic). Use 3 when unsure.
 - `priority` is true only for questions that are essential in interviews or daily work.

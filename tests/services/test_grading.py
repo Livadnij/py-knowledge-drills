@@ -156,3 +156,55 @@ def test_chatty_hint_on_correct_answer_is_dropped_not_rejected():
     p = FakeProvider([{"verdict": "correct", "missed": [], "hint": "Great job!"}])
     r = _grade(p)
     assert (r.verdict, r.hint, len(r.calls)) == (Verdict.correct, None, 1)
+
+
+# --- hint repetition ---
+
+from services.grading import SYSTEM_PROMPT, is_repeat  # noqa: E402
+
+FIRST = "Think about what happens to the state after it finishes settling."
+
+
+def test_reworded_hint_counts_as_repeat():
+    assert is_repeat("Consider what happens to the promise's state once it has finished settling.", [FIRST])
+
+
+def test_more_specific_hint_on_same_topic_is_not_a_repeat():
+    assert not is_repeat("Once settled, can the state ever go back to pending?", [FIRST])
+
+
+def test_unrelated_hint_is_not_a_repeat_and_empty_history_never_repeats():
+    assert not is_repeat("Look at how the version column is compared on write.", [FIRST])
+    assert not is_repeat(FIRST, [])
+
+
+def test_system_prompt_demands_escalating_hints():
+    assert "more specific" in SYSTEM_PROMPT and "different angle" in SYSTEM_PROMPT
+
+
+def _partial_with(hint):
+    return {"verdict": "partial", "missed": [1], "hint": hint}
+
+
+def test_repeated_hint_is_retried_and_the_retry_is_used():
+    p = FakeProvider([_partial_with("Consider what happens to the promise's state once it has finished settling."),
+                      _partial_with("Can a settled state ever go back to pending?")])
+    r = _grade(p, hints_given=[FIRST], hints_remaining=2)
+    assert r.hint == "Can a settled state ever go back to pending?" and len(r.calls) == 2
+
+
+def test_still_repeating_on_the_last_try_is_accepted_not_a_failed_grade():
+    reworded = _partial_with("Consider what happens to the promise's state once it has finished settling.")
+    r = _grade(FakeProvider([reworded, reworded]), hints_given=[FIRST], hints_remaining=2)
+    assert r.verdict == Verdict.partial and r.hint and len(r.calls) == 2
+
+
+def test_retry_tells_the_model_why_the_first_reply_was_rejected():
+    p = FakeProvider([
+        {"verdict": "partial", "missed": [7], "hint": "h"},
+        {"verdict": "partial", "missed": [0], "hint": "Think about the first idea."},
+    ])
+    _grade(p)
+    first_user, retry_user = p.calls[0][1], p.calls[1][1]
+    assert "rejected" not in first_user
+    assert "rejected" in retry_user and "out-of-range" in retry_user

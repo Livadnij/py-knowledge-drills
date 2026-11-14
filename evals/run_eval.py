@@ -13,7 +13,7 @@ from pathlib import Path
 
 import config
 from domain import Fact
-from services.grading import Grader, GradeResult, GradingError
+from services.grading import Grader, GradeResult, GradingError, is_repeat
 from services.llm.base import LLMError
 from services.llm.factory import make_provider
 
@@ -74,6 +74,8 @@ def score(results: list[tuple[EvalCase, GradeResult | None]]) -> EvalReport:
             report.mismatches.append(f"{case.id}: expected {case.expect}, got {verdict}")
         elif case.expect_missed_major is not None and verdict != "correct" and missed_major != case.expect_missed_major:
             report.mismatches.append(f"{case.id}: expected missed_major={case.expect_missed_major}, got {missed_major}")
+        elif result.hint and case.hints_given and is_repeat(result.hint, case.hints_given):
+            report.mismatches.append(f"{case.id}: hint repeats an earlier hint")
         else:
             report.passed += 1
     return report

@@ -77,3 +77,20 @@ def test_runner_reports_missing_key_without_traceback(capsys):
 
     assert main(["--provider", "openai"], provider_factory=no_key) == 2
     assert "OPENAI_API_KEY" in capsys.readouterr().out
+
+
+def test_score_flags_a_hint_that_repeats_an_earlier_one():
+    case = _case(expect=("partial",), missed_major=None)
+    case.hints_given.append("Think about what happens to the state after it finishes settling.")
+    repeated = GradeResult(Verdict.partial, [0], "Consider what happens to the promise's state once it has finished settling.", [])
+    fresh = GradeResult(Verdict.partial, [0], "Can a settled state ever go back to pending?", [])
+    report = score([(case, repeated), (case, fresh)])
+    assert (report.passed, len(report.mismatches)) == (1, 1)
+    assert "repeats" in report.mismatches[0]
+
+
+def test_eval_set_covers_ignored_hint_and_the_promise_regression():
+    cases = {c.id: c for c in load_cases(CASES)}
+    assert cases["lock-ignored-hint"].hints_given
+    promise = cases["promise-states-correct"]
+    assert promise.expect == ["correct"] and len(promise.facts) == 1
